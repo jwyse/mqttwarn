@@ -5,16 +5,21 @@ __author__    = 'Jan-Piet Mens <jpmens()gmail.com>'
 __copyright__ = 'Copyright 2014 Ben Jones'
 __license__   = 'Eclipse Public License - v 1.0 (http://www.eclipse.org/legal/epl-v10.html)'
 
-from future import standard_library
-standard_library.install_aliases()
+try:
+    from urllib.parse import urlparse, urlencode, urljoin
+    from urllib.request import urlopen, Request
+    from urllib.error import HTTPError
+except ImportError:
+    from urlparse import urlparse  # type: ignore[no-redef]
+    from urllib import urlencode, urljoin  # type: ignore[no-redef,attr-defined]
+    from urllib2 import urlopen, Request, HTTPError  # type: ignore[no-redef]
 
-import urllib.request, urllib.parse, urllib.error
 import base64
 
 try:
     import simplejson as json
 except ImportError:
-    import json
+    import json  # type: ignore[no-redef]
 
 
 def plugin(srv, item):
@@ -27,10 +32,11 @@ def plugin(srv, item):
     params = item.addrs[2]
     timeout = item.config.get('timeout', 60)
 
-    auth = None
+    basicauth_token = None
     try:
         username, password = item.addrs[3]
-        auth = base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+        credentials = '%s:%s' % (username, password)
+        basicauth_token = base64.b64encode(credentials.encode('utf-8')).decode()
     except:
         pass
 
@@ -70,18 +76,18 @@ def plugin(srv, item):
                 resource = url
                 if not resource.endswith('?'):
                     resource = resource + '?'
-                resource = resource + urllib.parse.urlencode(params)
+                resource = resource + urlencode(params)
             else:
                 resource = url
 
-            request = urllib.request.Request(resource)
+            request = Request(resource)
 
             if srv.SCRIPTNAME is not None:
                 request.add_header('User-agent', srv.SCRIPTNAME)
-            if auth is not None:
-                request.add_header("Authorization", "Basic %s" % auth)
+            if basicauth_token is not None:
+                request.add_header("Authorization", "Basic %s" % basicauth_token)
 
-            resp = urllib.request.urlopen(request, timeout=timeout)
+            resp = urlopen(request, timeout=timeout)
             data = resp.read()
             #srv.logging.debug("HTTP response:\n%s" % data)
         except Exception as e:
@@ -92,13 +98,13 @@ def plugin(srv, item):
 
     if method.upper() == 'POST':
         try:
-            request = urllib.request.Request(url)
+            request = Request(url)
             if params is not None:
                 if tojson is not None:
                     encoded_params = json.dumps(params)
                     request.add_header('Content-Type', 'application/json')
                 else:
-                    encoded_params = urllib.parse.urlencode(params)
+                    encoded_params = urlencode(params)
             else:
                 if tojson is not None:
                     encoded_params = item.payload
@@ -111,11 +117,11 @@ def plugin(srv, item):
 
             if srv.SCRIPTNAME is not None:
                 request.add_header('User-agent', srv.SCRIPTNAME)
-            if auth is not None:
-                request.add_header("Authorization", "Basic %s" % auth)
+            if basicauth_token is not None:
+                request.add_header("Authorization", "Basic %s" % basicauth_token)
 
             srv.logging.debug("before send")
-            resp = urllib.request.urlopen(request, timeout=timeout)
+            resp = urlopen(request, timeout=timeout)
             data = resp.read()
             #srv.logging.debug("HTTP response:\n%s" % data)
         except Exception as e:

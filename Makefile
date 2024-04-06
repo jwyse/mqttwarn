@@ -11,13 +11,17 @@ $(eval venvpath     := .venv)
 $(eval pip          := $(venvpath)/bin/pip)
 $(eval python       := $(venvpath)/bin/python)
 $(eval pytest       := $(venvpath)/bin/pytest)
-$(eval bumpversion  := $(venvpath)/bin/bumpversion)
 $(eval twine        := $(venvpath)/bin/twine)
 $(eval sphinx       := $(venvpath)/bin/sphinx-build)
+$(eval sphinx-autobuild := $(venvpath)/bin/sphinx-autobuild)
+$(eval isort        := $(venvpath)/bin/isort)
+$(eval black        := $(venvpath)/bin/black)
+$(eval poe          := $(venvpath)/bin/poe)
 
 # Setup Python virtualenv
 setup-virtualenv:
 	@test -e $(python) || python3 -m venv $(venvpath)
+	$(pip) install versioningit
 
 
 # -------
@@ -25,31 +29,32 @@ setup-virtualenv:
 # -------
 
 # Run the main test suite
-test:
-	@test -e $(pytest) || $(MAKE) install-tests
-	@$(pytest) tests -m 'not slow'
+test: install-tests
+	@$(poe) test
 
 test-refresh: install-tests test
 
 test-junit: install-tests
-	@$(pytest) tests --junit-xml .pytest_results/pytest.xml
+	@$(pytest) -vvv tests --junit-xml .pytest_results/pytest.xml
 
 test-coverage: install-tests
-	@$(pytest) tests \
-		--junit-xml .pytest_results/pytest.xml \
-		--cov mqttwarn --cov-branch \
-		--cov-report term-missing \
-		--cov-report html:.pytest_results/htmlcov \
-		--cov-report xml:.pytest_results/coverage.xml
+	@$(pytest) --cov-report html:.pytest_results/htmlcov
+
+
+# ----------------------
+# Linting and Formatting
+# ----------------------
+format: install-tests
+	$(poe) format
+
 
 # -------
 # Release
 # -------
 
 # Release this piece of software
-# Synopsis:
-#   make release bump=minor  (major,minor,patch)
-release: bumpversion push sdist pypi-upload
+release:
+	poe release
 
 
 # -------------
@@ -58,33 +63,23 @@ release: bumpversion push sdist pypi-upload
 
 # Build the documentation
 docs-html: install-doctools
-	touch doc/index.rst
-	export SPHINXBUILD="`pwd`/$(sphinx)"; cd doc; make html
+	cd docs; make html
+
+docs-serve:
+	cd docs/_build/html; python3 -m http.server
+
+docs-autobuild: install-doctools
+	$(sphinx-autobuild) --open-browser docs docs/_build
 
 
 # ===============
 # Utility targets
 # ===============
-bumpversion: install-releasetools
-	@$(bumpversion) $(bump)
-
-push:
-	git push && git push --tags
-
-sdist:
-	@$(python) setup.py sdist
-
-pypi-upload: install-releasetools
-	@$(twine) upload --skip-existing dist/*.tar.gz
-
-install-doctools: setup-virtualenv
-	@$(pip) install --quiet --requirement requirements-docs.txt --upgrade
-
-install-releasetools: setup-virtualenv
-	@$(pip) install --quiet --requirement requirements-release.txt --upgrade
+install-doctools:
+	@test -e $(python) || python3 -m venv $(venvpath)
+	$(pip) install --quiet --upgrade --requirement=docs/requirements.txt
 
 install-tests: setup-virtualenv
-	@$(pip) install --quiet --editable .[test] --upgrade
-	@$(python) setup.py --quiet develop
+	@test -e $(pytest) || $(pip) install --editable=.[test,develop] --upgrade
 	@touch $(venvpath)/bin/activate
 	@mkdir -p .pytest_results

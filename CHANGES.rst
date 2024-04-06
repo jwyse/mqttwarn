@@ -7,6 +7,180 @@ in progress
 ===========
 
 
+2023-10-15 0.35.0
+=================
+
+- Fix sending ntfy notifications with longer messages than 76 characters.
+  Thanks, @codebude.
+- Modernize Pushbullet service plugin. Thanks, @DNicholai.
+- Documentation: Clarify data type of "target address descriptor"
+- [Pushover]: Switch to using ``base64.b64decode()`` to support decoding
+  a string. Thanks, @sumnerboy12.
+- [ntfy] Fix submitting newline characters in notification message text.
+  Thanks, @zoic21 and @codebude.
+- Core: Fix decoding non-JSON messages, which negatively impacted outbound
+  templating. Thanks, @Sc0th.
+- Add support for Python 3.12
+
+  - Use ``importlib`` instead of ``imp``
+  - Use ``importlib.resources`` instead of ``pkg_resources``
+  - [http,pushsafer] Remove dependency on ``future`` package
+- Add configuration variable expansion. Thanks, @jhakonen.
+
+
+2023-05-15 0.34.1
+=================
+
+- Add example "Simple MQTT media player". Thanks, @nagyrobi.
+- Add example "Forwarding data from IoT devices to Zabbix"
+- Remove support for Secure Sockets Layer Version 3.0 (SSLv3).
+  As per RFC 7568, SSLv3 has been deprecated in 2015 already.
+- Tests: Add more test cases to increase mqttwarn core coverage to ~100%
+- Improve example "Forward OwnTracks low-battery warnings to ntfy"
+- Migrate documentation to https://mqttwarn.readthedocs.io/
+
+
+2023-04-28 0.34.0
+=================
+
+- Fix: Don't crash when receiving non-UTF8 payloads. Thanks, @sevmonster.
+- Improve exception logging in ``is_filtered``, ``get_topic_data``, and
+  ``get_all_data`` context functions. Thanks, @sevmonster.
+- [core] Allow processing of binary, non-UTF8 message payloads, for example
+  images. Thanks, @sevmonster.
+- [file] Allow writing of binary content. Thanks, @sevmonster.
+- [ux] Rename subcommand ``mqttwarn make-samplefuncs`` to ``mqttwarn make-udf``,
+  and adjust naming.
+- [ntfy] Add dedicated service plugin ``ntfy``
+- [ntfy] Use RFC 2047 for encoding HTTP header values. Thanks, @binwiederhier.
+- [ntfy] Add more fields: icon, cache, firebase, unifiedpush
+- [ntfy] Also interpolate outbound ntfy option fields
+- [ntfy] [Frigate] Improve example/tutorial about Frigate event notifications
+- [ntfy] [Frigate] Synchronize JSON event and snapshot image receive order
+- [ntfy] [Frigate] Tests: Verify notification was properly received by ntfy
+- [cli] Fix ``--config-file`` command line option
+
+
+2023-04-11 0.33.0
+=================
+
+- Pushsafer: Fix to prevent submitting empty parameters to upstream API.
+- Pushsafer: Modernize configuration layout for target addresses.
+- Pushsafer: Add parameters for "Confirm", "Answer Options", and "Force Answer".
+
+Thanks, @appzer.
+
+
+2023-02-13 0.32.0
+=================
+
+- Modernize Docker configuration, now using Debian bullseye and Python 3.11.
+- Improve nightly and on-PR Docker builds.
+- Add versioning based on Git tags, using ``versioningit``. This will aid in
+  telling PR- and nightly releases apart from GA releases when running
+  ``mqttwarn --version``.
+- Improve Apprise integration by propagating the mqttwarn data dictionary into
+  the Apprise plugin template arguments. Thanks, @zoic21.
+
+
+2022-11-21 0.31.0
+=================
+
+- Make the PushOver API ``retry`` and ``expire`` options configurable. Thanks, @jlrgraham.
+- Add new configuration setting ``filteredmessagesloglevel``, to optionally set the log
+  level for filtered messages. Thanks, @jlrgraham.
+- CI and tests: Improvements and maintenance
+- Documentation: Improve section about Apprise
+- Documentation: Notifications to ntfy via Apprise. Thanks, @binwiederhier, @particledecay,
+  and @caronc.
+
+
+2022-10-05 0.30.0
+=================
+
+- Make LWT alive/dead payload configurable. Thanks, @sumnerboy12.
+- Upgrade to ``future>=0.18.0,<1``. Thanks, @arieroos.
+- Several adjustments to log messages
+- Several improvements to the test harness, code coverage, project tooling,
+  code linting and formatting, and CI
+- Refactoring of some data model components
+- Fix job sorting by priority after migration to Python 3
+- Remove some Python 2 compatibility snippets. mqttwarn is Python 3 only.
+
+Breaking changes
+----------------
+- Rework and rename service plugin ``osxnotify`` to ``desktopnotify``, it
+  should work on all popular operating systems now. Thanks, @portalzine.
+
+
+2022-08-22 0.29.1
+=================
+
+- Improve documentation about logging on Docker
+- Improve launching with an additional set of ``--config`` arguments
+
+
+2022-08-21 0.29.0
+=================
+
+- Improve error handling: Remove the ``exception_traceback()`` helper function
+  again, and use ``logger.exception()`` instead.
+- Improve error messages: Remove all ellipsis
+- SMTP service plugin: Add software tests
+- SMTP service plugin: Fix evaluation of ``htmlmsg`` parameter
+- SMTP service plugin: Add support for minimal configuration w/o TLS and AUTH.
+  Thanks, @symonjim.
+- Update dependencies: Use Jinja2 3.x; Remove configparser, it is built into Python 3
+- Add support for Python 3.11
+- Pushover service plugin: Enable passing of parameters ``html``, ``url``, ``url_title``.
+  Thanks, @jlrgraham.
+- Add test for exercising configuration file scaffolding
+- Improve README regarding configuration file scaffolding on Windows 10/PowerShell.
+  Thanks, @symonjim.
+- Improve support for VSCode. Thanks, @psyciknz.
+- Improve ``mqttwarn`` command line entry point testing
+
+
+2021-10-31 0.28.1
+=================
+
+- Fix documentation about Docker images. Thanks, @psyciknz!
+- Fix enumerating ``addrs`` in pushsafer service. Thanks, @ykuzmenko!
+
+
+2021-10-19 0.28.0
+=================
+
+- Allow dispatching of messages with no target address information.
+  This helps for service plugins like Apprise to make the configuration
+  snippet more compact. Now, service configurations can omit the ``targets``
+  option altogether.
+- ``apprise_single`` service: Accept omitted/empty `addrs` attribute.
+- ``apprise_single`` service: Improve query parameter serialization.
+- ``apprise_multi`` service: New plugin. Thanks, @psyciknz!
+  The idea behind this variant is to publish messages to different Apprise
+  plugins within a single configuration snippet, containing multiple recipients.
+
+
+2021-10-17 0.27.0
+=================
+
+- IRCcat: Fix and improve service. Thanks, @JanKoppe.
+- IRCcat: Add newline character after message. Thanks again, @JanKoppe.
+- CI: Run tests on Python 3.10
+- Allow parameters of the ``file`` service to be defined on a per-file basis.
+  Thanks, @Gulaschcowboy!
+- Add software tests for ``file`` service.
+- Add feature to publish mqttwarn status information. Thanks, @psyciknz!
+
+
+2021-09-29 0.26.2
+=================
+
+- Fix HTTP basic authentication for Python 3 in plugins for HTTP, XBMC and Ionic.
+  Thanks, @sumnerboy12!
+
+
 2021-06-19 0.26.1
 =================
 

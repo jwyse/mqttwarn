@@ -1,31 +1,33 @@
 # -*- coding: utf-8 -*-
-# (c) 2014-2019 The mqttwarn developers
+# (c) 2014-2023 The mqttwarn developers
 from __future__ import print_function
-import os
-import sys
-import json
+
 import codecs
-import signal
+import json
 import logging
+import os
+import signal
+import sys
+import typing as t
 
 from docopt import docopt
 
 from mqttwarn import __version__
-from mqttwarn.configuration import load_configuration, Config
-from mqttwarn.core import bootstrap, connect, cleanup, run_plugin
+from mqttwarn.configuration import Config, load_configuration
+from mqttwarn.core import bootstrap, cleanup, run_plugin, subscribe_forever
 from mqttwarn.util import get_resource_content
 
 logger = logging.getLogger(__name__)
 
-APP_NAME = 'mqttwarn'
+APP_NAME = "mqttwarn"
 
 
 def run():
     """
     Usage:
       {program} [make-config]
-      {program} [make-samplefuncs]
-      {program} [--config=] [--config-file=] [--plugin=] [--options=]
+      {program} [make-udf]
+      {program} [--config=] [--config-file=] [--plugin=] [--options=] [--data=]
       {program} --version
       {program} (-h | --help)
 
@@ -38,14 +40,14 @@ def run():
       [--plugin=]               The plugin name to load. This can either be a
                                 full qualified Python package/module name or a
                                 path to a Python file.
-      [--options=]              Configuration options to propagate to the plugin
-                                entrypoint.
+      [--options=]              Configuration options to propagate to the plugin entrypoint.
+      [--data=]                 Data to propagate to the plugin entrypoint.
 
     Bootstrapping options:
       make-config               Dump configuration file blueprint to STDOUT,
                                 suitable for redirecting into a configuration file.
-      make-samplefuncs          Dump blueprint for custom functions file to STDOUT,
-                                suitable for redirecting into a `samplefuncs.py` file.
+      make-udf                  Dump blueprint for user-defined functions file to STDOUT,
+                                suitable for redirecting into a `udf.py` file.
 
     Miscellaneous options:
       --version                 Show version information
@@ -57,43 +59,47 @@ def run():
     commandline_schema = run.__doc__.format(program=APP_NAME)
 
     # Read commandline options
-    options = docopt(commandline_schema, version=APP_NAME + ' ' + __version__)
+    options = docopt(commandline_schema, version=APP_NAME + " " + __version__)
 
-    # Python2/3 string encoding compat - sigh.
-    # https://stackoverflow.com/questions/2737966/how-to-change-the-stdin-and-stdout-encoding-on-python-2/58449987#58449987
-    utf8_writer = codecs.getwriter('utf-8')
-    if sys.version_info.major <= 2:
-        sys.stdout = utf8_writer(sys.stdout)
-    else:
-        sys.stdout = utf8_writer(sys.stdout.buffer)
+    # TODO: Review this. Why do we need it?
+    utf8_writer = codecs.getwriter("utf-8")
+    sys.stdout = utf8_writer(sys.stdout.buffer)
 
-    if options['make-config']:
-        payload = get_resource_content('mqttwarn.examples', 'basic/mqttwarn.ini')
+    if options["make-config"]:
+        payload = get_resource_content("mqttwarn.examples", "basic/mqttwarn.ini")
         print(payload)
 
-    elif options['make-samplefuncs']:
-        payload = get_resource_content('mqttwarn.examples', 'basic/samplefuncs.py')
+    elif options["make-udf"]:
+        payload = get_resource_content("mqttwarn.examples", "basic/udf.py")
         print(payload)
 
-    elif options['--plugin'] and options['--options']:
+    elif options["--plugin"] and options["--options"]:
 
         # Decode arguments
-        arg_plugin = options['--plugin']
-        arg_options = json.loads(options['--options'])
+        arg_plugin = options["--plugin"]
+        arg_options = options["--options"] and json.loads(options["--options"]) or {}
+        arg_data = options["--data"] and json.loads(options["--data"]) or {}
         arg_config = None
-        if "--config" in options and options['--config'] is not None:
-            arg_config = json.loads(options['--config'])
+        if "--config" in options and options["--config"] is not None:
+            arg_config = json.loads(options["--config"])
 
         # Launch service plugin in standalone mode
-        launch_plugin_standalone(arg_plugin, arg_options, configfile=options.get("--config-file"), config_more=arg_config)
-
+        launch_plugin_standalone(
+            arg_plugin, arg_options, arg_data, configfile=options.get("--config-file"), config_more=arg_config
+        )
 
     # Run mqttwarn in service mode when no command line arguments are given
     else:
-        run_mqttwarn()
+        run_mqttwarn(configfile=options["--config-file"])
 
 
-def launch_plugin_standalone(plugin, options, configfile=None, config_more=None):
+def launch_plugin_standalone(
+    plugin: str,
+    options: t.Dict,
+    data: t.Dict,
+    configfile: t.Optional[str] = None,
+    config_more: t.Optional[t.Dict] = None,
+):
 
     # Optionally load configuration file
     does_not_exist = False
@@ -109,6 +115,8 @@ def launch_plugin_standalone(plugin, options, configfile=None, config_more=None)
     # Optionally add additional config settings from command line.
     if config_more is not None:
         section = "config:{}".format(plugin)
+        if not config.has_section(section):
+            config.add_section(section)
         for key, value in config_more.items():
             config.set(section, key, value)
 
@@ -120,16 +128,16 @@ def launch_plugin_standalone(plugin, options, configfile=None, config_more=None)
     logger.info('Running service plugin "{}" with options "{}"'.format(plugin, options))
 
     # Launch service plugin
-    run_plugin(config=config, name=plugin, options=options)
+    run_plugin(config=config, name=plugin, options=options, data=data)
 
 
-def run_mqttwarn():
+def run_mqttwarn(configfile: t.Optional[str] = None):
 
     # Script name (without extension) used as last resort fallback for config/logfile names
     scriptname = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
     # Load configuration file
-    config = load_configuration(name=scriptname)
+    config = load_configuration(configfile=configfile, name=scriptname)
 
     # Setup logging
     setup_logging(config)
@@ -144,10 +152,10 @@ def run_mqttwarn():
     bootstrap(config=config, scriptname=scriptname)
 
     # Connect to broker and start listening
-    connect()
+    subscribe_forever()
 
 
-def setup_logging(config):
+def setup_logging(config: Config):
     LOGLEVEL = config.loglevelnumber
     LOGFILE = config.logfile
     LOGFORMAT = config.logformat
@@ -156,8 +164,8 @@ def setup_logging(config):
     if not LOGFILE:
         pass
 
-    elif LOGFILE.startswith('stream://'):
-        LOGFILE = LOGFILE.replace('stream://', '')
+    elif LOGFILE.startswith("stream://"):
+        LOGFILE = LOGFILE.replace("stream://", "")
         logging.basicConfig(stream=eval(LOGFILE), level=LOGLEVEL, format=LOGFORMAT)
 
     # Send log messages to file by configuring "logfile = 'mqttwarn.log'"

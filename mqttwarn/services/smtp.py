@@ -20,11 +20,11 @@ def plugin(srv, item):
 
     server      = item.config['server']
     sender      = item.config['sender']
-    starttls    = item.config['starttls']
-    username    = item.config['username']
-    password    = item.config['password']
+    starttls    = item.config.get('starttls')
+    username    = item.config.get('username')
+    password    = item.config.get('password')
 
-    if 'htmlmsg' in item.config:
+    if item.config.get("htmlmsg"):
         msg = MIMEMultipart('alternative')
         msg.attach(MIMEText(item.message, 'plain'))
         msg.attach(MIMEText(item.message, 'html'))
@@ -36,8 +36,8 @@ def plugin(srv, item):
     msg['X-Mailer']     = srv.SCRIPTNAME
 
     if not smtp_addresses:
-        srv.logging.warn("Skipped sending SMTP notification to %s, "
-                         "no addresses configured" % (item.target))
+        srv.logging.warning("Skipped sending SMTP notification to %s, "
+                            "no addresses configured" % (item.target))
         return False
 
     try:
@@ -53,8 +53,8 @@ def plugin(srv, item):
         server.quit()
         srv.logging.debug("Successfully sent SMTP notification")
     except Exception as e:
-        srv.logging.warn("Error sending notification to SMTP recipient %s, addresses: %s. "
-                         "Exception: %s" % (item.target, smtp_addresses, e))
+        srv.logging.warning("Error sending notification to SMTP recipient %s, addresses: %s. "
+                            "Exception: %s" % (item.target, smtp_addresses, e))
         return False
 
     return True

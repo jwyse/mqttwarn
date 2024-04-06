@@ -79,9 +79,25 @@ def plugin(srv, item):
         srv.logging.warning("No pushover credentials configured for target `%s'" % (item.target))
         return False
 
+
+    api_retry = item.config.get('api_retry', None)
+    if api_retry is None:
+        if "PUSHOVER_API_RETRY" in os.environ:
+            api_retry = int(os.environ["PUSHOVER_API_RETRY"].strip())
+        else:
+            api_retry = 60
+
+    api_expire = item.config.get('api_expire', None)
+    if api_expire is None:
+        if "PUSHOVER_API_EXPIRE" in os.environ:
+            api_expire = int(os.environ["PUSHOVER_API_EXPIRE"].strip())
+        else:
+            api_expire = 3600
+
+
     params = {
-            'retry'  : 60,
-            'expire' : 3600,
+            'retry'  : api_retry,
+            'expire' : api_expire,
         }
 
     if len(addrs) > 2 and addrs[2]:
@@ -105,6 +121,20 @@ def plugin(srv, item):
     else:
         params['message'] = item.message
 
+    # Check for a few more Pushover API parameters
+    for key in ['html', 'url', 'url_title', 'expire', 'retry']:
+        if key in item.data:
+            params[key] = item.data[key]
+
+    if params['retry'] < 30:
+        srv.logging.warning("Pushover retry values less than 30 seconds are not permitted, increasing to 30.")
+        params['retry'] = 30
+
+    if params['expire'] > 10800:
+        srv.logging.warning("Pushover expire values greater than 10800 are not permitted, decreasing to 10800.")
+        params['expire'] = 10800
+
+
     # check if there is an image contained in a JSON payload
     # (support either an image URL or base64 encoded image)
     image = None
@@ -124,10 +154,10 @@ def plugin(srv, item):
     elif 'imagebase64' in item.data:
         imagebase64 = item.data['imagebase64']
         srv.logging.debug("Image (base64 encoded) detected")
-        image = base64.decodebytes(imagebase64)
+        image = base64.b64decode(imagebase64)
 
     try:
-        srv.logging.debug("Sending pushover notification to %s [%s]...." % (item.target, params))
+        srv.logging.debug("Sending pushover notification to %s [%s]" % (item.target, params))
         pushover(image=image, user=userkey, token=token, **params)
         srv.logging.debug("Successfully sent pushover notification")
     except Exception as e:

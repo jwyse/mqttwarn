@@ -1,122 +1,121 @@
 # -*- coding: utf-8 -*-
-# (c) 2014-2021 The mqttwarn developers
+# (c) 2014-2023 The mqttwarn developers
 import os
 import platform
+import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
+from versioningit import get_cmdclasses
 
 here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.rst')).read()
+README = open(os.path.join(here, "README.rst")).read()
 
 requires = [
-    'six>=1.13.0',
-    'paho-mqtt>=1.4.0',
-    'jinja2>=2.10.1',
-    'attrs>=19.3.0',
-    'docopt>=0.6.2',
-    'requests>=2.22.0',
-    'future>=0.18.2',
-    'configparser>=3.5.3',
+    "attrs<23",
+    "docopt<1",
+    "funcy<3",
+    "future>=0.18.0,<1",
+    "importlib-metadata; python_version<'3.8'",
+    "importlib-resources; python_version<'3.8'",
+    "jinja2<4",
+    "paho-mqtt<2",
+    "requests<3",
+    "six<2",
 ]
 
 extras = {
-    'amqp': [
-        'puka>=0.0.7',
+    "amqp": [
+        "puka>=0.0.7; python_version<'3.12'",
     ],
-    'apns': [
-        'apns>=2.0.1',
+    "apns": [
+        "apns>=2.0.1",
     ],
-    'apprise': [
-        'apprise>=0.8.9',
+    "apprise": [
+        "apprise>=1.3,<2",
     ],
-    'asterisk': [
-        'pyst2>=0.5.0',
+    "asterisk": [
+        "pyst2>=0.5.0",
     ],
-    'celery': [
-        'celery',
+    "celery": [
+        "celery",
     ],
-    'chromecast': [
-        'pychromecast>=7.5.0',
+    "chromecast": [
+        "pychromecast>=7.5.0; python_version>='3.7'",
     ],
-    'dnsupdate': [
-        'dnspython>=1.15.0',
+    "dnsupdate": [
+        "dnspython>=1.15.0",
     ],
-    'fbchat': [
-        'fbchat>=1.3.6',
+    "fbchat": [
+        "fbchat>=1.3.6",
     ],
-    'gss': [
-        'gdata>=2.0.18',
+    "gss2": [
+        "google-api-python-client<2; python_version>='3.7'",
+        "gspread>=2.1.1",
+        "oauth2client>=4.1.2",
     ],
-    'gss2': [
-        'gspread>=2.1.1',
-        'oauth2client>=4.1.2',
-        #'google-api-python-client>=1.7.11',
+    "mysql": [
+        "mysql",
     ],
-    'mysql': [
-        'mysql',
+    "mysql_dynamic": [
+        "mysqlclient",
     ],
-    'nma': [
-        'PyNMA>=1.0',
+    "nsca": [
+        "pynsca>=1.6",
     ],
-    'nsca': [
-        'pynsca>=1.6',
+    "desktopnotify": [
+        "desktop-notifier<4",
     ],
-    'osxnotify': [
-        'pync>=1.6.1',
+    "pastebinpub": [
+        "Pastebin>=1.1.2",
     ],
-    'pastebinpub': [
-        'Pastebin>=1.1.2',
+    "postgres": [
+        "psycopg2-binary>=2.7.4",
     ],
-    'postgres': [
-        'psycopg2-binary>=2.7.4',
+    "prowl": [
+        "pyprowl>=3.0.1",
     ],
-    'prowl': [
-        'pyprowl>=3.0.1',
+    "pushbullet": [
+        # TODO: Upstream `send_note` utility function.
+        # "pushbullet-python<2",
     ],
-    'pushbullet': [
-        'PushbulletPythonLibrary>=2.3',
+    "redispub": [
+        "redis>=2.10.6",
     ],
-    'redispub': [
-        'redis>=2.10.6',
+    "rrdtool": [
+        "rrdtool>=0.1.12",
     ],
-    'rrdtool': [
-        'rrdtool>=0.1.12',
+    "serial": [
+        "pyserial>=3.4",
     ],
-    'serial': [
-        'pyserial>=3.4',
+    "slack": [
+        "slack-sdk>=3.1.0",
     ],
-    'slack': [
-        'slack-sdk>=3.1.0',
+    "ssh": [
+        "paramiko>=2.4.1; python_version>='3.7'",
     ],
-    'ssh': [
-        'paramiko>=2.4.1',
+    "tootpaste": [
+        "Mastodon.py>=1.2.2",
     ],
-    'tootpaste': [
-        'Mastodon.py>=1.2.2',
+    "twilio": [
+        "twilio>=6.11.0",
     ],
-    'twilio': [
-        'twilio>=6.11.0',
+    "twitter": [
+        "python-twitter>=3.4.1",
     ],
-    'twitter': [
-        'python-twitter>=3.4.1',
+    "websocket": [
+        "websocket-client>=0.47.0",
     ],
-    'websocket': [
-        'websocket-client>=0.47.0',
+    "xmpp": [
+        "xmpppy>=0.6.1",
+        "dnspython>=1.16.0",
     ],
-    'xively': [
-        'xively-python',
-    ],
-    'xmpp': [
-        'xmpppy>=0.6.1',
-        'dnspython>=1.16.0',
-    ],
-    'slixmpp': [
-        'slixmpp>=1.5.2',
+    "slixmpp": [
+        "slixmpp>=1.5.2",
     ],
     # More notification plugins from the community.
     # https://github.com/daq-tools/mqttwarn-contrib
-    'contrib': [
-        'mqttwarn-contrib',
+    "contrib": [
+        "mqttwarn-contrib",
     ],
 }
 
@@ -130,14 +129,24 @@ for extra, packages in extras.items():
     if extra in ["mysql", "rrdtool"]:
         continue
 
+    # FIXME: `mysqlclient` needs MySQL or MariaDB client libraries.
+    if extra in ["mysql_dynamic"] and sys.platform in ["darwin", "win32"]:
+        continue
+
     # FIXME: Skip specific packages on specific platforms,
     #        because they would also need a build toolchain.
     machine = platform.uname()[4]
     if machine in ["armv7l", "aarch64"] and extra in ["postgres", "slixmpp", "ssh"]:
         continue
 
-    # FIXME: The `cryptography` package is not available as binary wheel on arm32v7.
-    if machine in ["armv7l"] and extra in ["apprise"]:
+    # FIXME: A few packages are not available as wheels on arm32v7, and take quite an amount
+    #        of time to build, so let's mask them to improve build times significantly.
+    #        Examples: `cryptography`, `aiohttp`, `frozenlist`, `multidict`, `yarl`.
+    if machine in ["armv7l"] and extra in ["apprise", "twilio"]:
+        continue
+
+    # FIXME: aiohttp (needed by twilio) is not available for Python 3.12 yet.
+    if sys.version_info >= (3, 12) and extra in ["twilio"]:
         continue
 
     for package in packages:
@@ -148,24 +157,36 @@ extras["all"] = extras_all
 
 # Packages needed for running the tests.
 extras["test"] = [
-    'pytest>=4.6.7',
-    'pytest-cov>=2.8.1',
-    'lovely.testlayers>=0.7.1',
-    'tox>=3.14.2',
-    'surrogate==0.1',
-    'dataclasses; python_version<"3.7"',
-    'requests-toolbelt>=0.9.1,<1',
-    'responses>=0.13.3,<1',
+    "pytest<8",
+    "pytest-cov<5",
+    "pytest-mock<4",
+    "pytest-mqtt<1",
+    "tox<4",
+    "dataclasses; python_version<'3.7'",
+    "requests-toolbelt>=1,<2",
+    "responses>=0.13.3,<1",
+    "pyfakefs>=4.5,<6",
+] + extras["all"]
+
+# Packages needed for development and running CI.
+extras["develop"] = [
+    "black<23",
+    "build<1",
+    "mypy<1.3",
+    "poethepoet<1",
+    "ruff==0.0.254; python_version>='3.7'",
+    "sphinx-autobuild",
 ]
 
 
-setup(name='mqttwarn',
-      version='0.26.1',
-      description='mqttwarn - subscribe to MQTT topics and notify pluggable services',
-      long_description=README,
-      license="EPL 2.0",
-      classifiers=[
-        "Development Status :: 4 - Beta",
+setup(
+    cmdclass=get_cmdclasses(),
+    name="mqttwarn",
+    description="mqttwarn - subscribe to MQTT topics and notify pluggable services",
+    long_description=README,
+    license="EPL 2.0",
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Environment :: Plugins",
         "Intended Audience :: Developers",
@@ -184,6 +205,9 @@ setup(name='mqttwarn',
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Communications",
         "Topic :: Education",
         "Topic :: Internet",
@@ -201,27 +225,26 @@ setup(name='mqttwarn',
         "Topic :: System :: Systems Administration",
         "Topic :: Text Processing",
         "Topic :: Utilities",
-      ],
-      author='Jan-Piet Mens, Ben Jones, Andreas Motl',
-      author_email='jpmens@gmail.com',
-      url='https://github.com/jpmens/mqttwarn',
-      keywords='mqtt notification plugins data acquisition push transformation engine ' +
-               'mosquitto ',
-      packages=find_packages(),
-      include_package_data=True,
-      package_data={
-        'mqttwarn': [
-          '*.ini',
+    ],
+    author="Jan-Piet Mens, Ben Jones, Andreas Motl",
+    author_email="jpmens@gmail.com",
+    url="https://github.com/mqtt-tools/mqttwarn",
+    keywords="mqtt notification plugins data acquisition push transformation engine mosquitto",
+    packages=find_packages(),
+    include_package_data=True,
+    package_data={
+        "mqttwarn": [
+            "*.ini",
         ],
-      },
-      zip_safe=False,
-      test_suite='tests',
-      install_requires=requires,
-      extras_require=extras,
-      tests_require=extras['test'],
-      entry_points={
-          'console_scripts': [
-              'mqttwarn = mqttwarn.commands:run',
-          ],
-      },
+    },
+    zip_safe=False,
+    test_suite="tests",
+    install_requires=requires,
+    extras_require=extras,
+    tests_require=extras["test"],
+    entry_points={
+        "console_scripts": [
+            "mqttwarn = mqttwarn.commands:run",
+        ],
+    },
 )

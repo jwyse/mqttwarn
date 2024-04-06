@@ -13,7 +13,7 @@ import base64
 try:
     import simplejson as json
 except ImportError:
-    import json
+    import json  # type: ignore[no-redef]
 
 
 def plugin(srv, item):
@@ -51,8 +51,9 @@ def plugin(srv, item):
         req = urllib.request.Request(url, jsoncommand)
         req.add_header("Content-type", "application/json")
         if xbmcpassword is not None:
-            base64string = base64.encodestring('%s:%s' % (xbmcusername, xbmcpassword))[:-1]
-            authheader = "Basic %s" % base64string
+            credentials = '%s:%s' % (xbmcusername, xbmcpassword)
+            basicauth_token = base64.b64encode(credentials.encode('utf-8')).decode()
+            authheader = "Basic %s" % basicauth_token
             req.add_header("Authorization", authheader)
         response = urllib.request.urlopen(req, timeout = 2)
         srv.logging.debug("Successfully sent XBMC notification")

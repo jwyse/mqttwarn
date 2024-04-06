@@ -1,0 +1,7 @@
+furo
+jinja2<4
+myst-parser[linkify]<2
+sphinx<7
+sphinx-copybutton<1
+sphinx-togglebutton<1
+sphinxext-opengraph<1

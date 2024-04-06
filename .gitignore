@@ -2,6 +2,7 @@
 /.idea
 /.venv*
 /dist*
+/docs/_build
 /build
 *.pyc
 *.egg-info
@@ -12,10 +13,10 @@ services/winscp.rnd
 .vs/slnx.sqlite
 .vs/VSWorkspaceState.json
 .vs/ProjectSettings.json
-f.01
-.vscode/settings.json
-funcs.py
+udf.py
 .pytest_cache
 .pytest_results
-.coverage
+.coverage*
+coverage.xml
 .tox
+.ruff_cache
